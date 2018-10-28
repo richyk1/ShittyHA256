@@ -11,7 +11,7 @@ namespace SHA256
     {
         static void Main(string[] args)
         {
-            SHA256 sha256 = new SHA256("password");
+            SHA256 sha256 = new SHA256("password123");
             Console.WriteLine(sha256.getHash());
             Console.ReadKey();
         }
@@ -85,46 +85,70 @@ namespace SHA256
 
         public string getHash()
         {
-            // Padding
-            // Padding the message so that it is fixed value
+
+            int blockSize = 447;
             byte[] byteASCII = Encoding.UTF8.GetBytes(message);
+            string byteBinary = "";
 
-            string[] byteBinary = new string[message.Length];
-
-            for(var i = 0; i < byteASCII.Length; i++)
+            for (var i = 0; i < byteASCII.Length; i++) // This for loop converts all ASCI code to binary and puts it in string array
             {
-                string _ = Convert.ToString(byteASCII[i], 2);
-                while (_.Length < 8) _ = "0" + _;
-                byteBinary[i] = _;
+                string _ = Convert.ToString(byteASCII[i], 2); // Temporary variable _ that converts the input ASCII into base 2 binary
+                while (_.Length < 8) _ = "0" + _; // While length < 8 add 0's in front of the string
+                byteBinary += _; // Append the binary to the string
             }
 
-            string M = ""; // MESSAGE IN BINARY
-            foreach(var s in byteBinary){
-                Console.Write(s + " ");
-                M += s;
-            }
+            int remainder = byteBinary.Length % blockSize; // Check for the remainder
+            int blockAmount = (byteBinary.Length / blockSize) + ((remainder > 0) ? 1 : 0); // Define blockAmount if reamined bigger than zero then add block amount
+            remainder += (remainder > 0) ? 0 : blockSize; // If remained bigger than zero then nothing, but if not then dd blocksize
 
-            int k = (447 - M.Length) % 512; // M.Length = l
-            M += "1";
-            while (k > 0)
+            string[] blocks = new string[blockAmount]; 
+
+            for (int i = 0; i < blockAmount; i++)
             {
-                M += "0";
-                k--;
+                int currentGroupSize = (i < (blockAmount - 1)) ? blockSize : remainder; // Defines the size of the current index array
+                int offset = i * blockSize; // Define where to split the string
+
+                string block = byteBinary.Substring(offset, currentGroupSize);
+
+                if (block.Length > 0)
+                {
+                    blocks[i] = block;
+                }
             }
 
-            if (M.Length < 4294967296) // Check if input of message is bigger than 2 to the power of 64
-            {
-                string _ = Convert.ToString(M.Length, 2); // Creating the 64 bit string
-                int n = 64 - _.Length;
-                for (var i = 0; i < n; i++) _ = "0" + _;
-                M = M + _;
-            }
-           // Padding complete
-
+            string[] paddedBlocks = Padding(blocks);
+            // Padding Complete
 
 
             return "";
         }
 
+        private string[] Padding(string[] blocks)
+        {
+            string[] tempBlocks = new string[blocks.Length];
+
+            int index = 0;
+            foreach(string block in blocks)
+            {
+                string tempBlock = block; // Placeholder for block, because it is read only
+                int k = (447 - block.Length) % 512; // M.Length = l  / Checks how many 0's are going to be needed
+                tempBlock += "1"; // Appends one bit
+                while (k > 0)
+                {
+                    tempBlock += "0";
+                    k--;
+                }
+
+                string _ = Convert.ToString(tempBlock.Length, 2); // Creating the 64 bit string
+                int n = 64 - _.Length;
+                for (var i = 0; i < n; i++) _ = "0" + _;
+                tempBlock = tempBlock + _;
+
+                tempBlocks[index] = tempBlock;
+                index++;
+            }
+
+            return tempBlocks;
+        }
     }
 }
