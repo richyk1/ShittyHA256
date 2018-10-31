@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,12 +13,11 @@ namespace SHA256
     {
         static void Main(string[] args)
         {
-            SHA256 sha256 = new SHA256("password123");
+            SHA256 sha256 = new SHA256("abc");
             Console.WriteLine(sha256.getHash());
             Console.ReadKey();
         }
 
-            
     }
 
     // Operating in 32-bits
@@ -32,13 +33,13 @@ namespace SHA256
         uint RotR(uint A, byte n) // denotes the circular right shift of n bits of the binary word A.
         {
             // uint = UInt32 = 4 bytes = 4 * 8 bits = 32 bits
-            Debug.Assert(n < sizeof(uint)); // Checks if n is less than 32 bits.
-            return (A >> n) | (A << (sizeof(uint) - n));
+            Debug.Assert(n < 32); // Checks if n is less than 32 bits.
+            return (A >> n) | (A << (32 - n));
         }
 
         uint ShR(uint A, byte n) // denotes the right shift of n bits of the binary word A.
         {
-            Debug.Assert(n < sizeof(uint));
+            Debug.Assert(n < 32);
             return A >> n;
         }
 
@@ -46,10 +47,10 @@ namespace SHA256
         {
             return (X & Y) ^ (~X & Z);
         }
-        
+
         uint Maj(uint X, uint Y, uint Z)
         {
-            return (X & Y) ^ (X & Z) ^ (Y & Z );
+            return (X & Y) ^ (X & Z) ^ (Y & Z);
         }
 
         uint Sigma0(uint X)
@@ -62,15 +63,21 @@ namespace SHA256
             return RotR(X, 6) ^ RotR(X, 11) ^ RotR(X, 25);
         }
 
-        uint sigma0(uint X)
+        uint sigma0(string X)
         {
-            return RotR(X, 7) ^ RotR(X, 18) ^ ShR(X, 3);
+            uint binaryTextTobinary = Convert.ToUInt32(X, 2);
+            Console.WriteLine("sigma0: {0}", RotR(binaryTextTobinary, 7) ^ RotR(binaryTextTobinary, 18) ^ ShR(binaryTextTobinary, 3));
+            return (RotR(binaryTextTobinary, 7) ^ RotR(binaryTextTobinary, 18) ^ ShR(binaryTextTobinary, 3));
         }
 
-        uint sigma1(uint X)
+        uint sigma1(string X)
         {
-            return RotR(X, 17) ^ RotR(X, 19) ^ ShR(X, 10);
+            uint binaryTextTobinary = Convert.ToUInt32(X, 2);
+            Console.WriteLine("sigma1: {0}", RotR(binaryTextTobinary, 17) ^ RotR(binaryTextTobinary, 19) ^ ShR(binaryTextTobinary, 10));
+            return (RotR(binaryTextTobinary, 17) ^ RotR(binaryTextTobinary, 19) ^ ShR(binaryTextTobinary, 10));
         }
+
+
 
         static readonly uint[] K = new uint[64] {
             0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
@@ -82,6 +89,10 @@ namespace SHA256
             0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
             0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2
         };
+
+        UInt32[] H = new UInt32[8] {
+            0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+            };
 
         public string getHash()
         {
@@ -101,7 +112,7 @@ namespace SHA256
             int blockAmount = (byteBinary.Length / blockSize) + ((remainder > 0) ? 1 : 0); // Define blockAmount if reamined bigger than zero then add block amount
             remainder += (remainder > 0) ? 0 : blockSize; // If remained bigger than zero then nothing, but if not then dd blocksize
 
-            string[] blocks = new string[blockAmount]; 
+            string[] blocks = new string[blockAmount];
 
             for (int i = 0; i < blockAmount; i++)
             {
@@ -119,6 +130,16 @@ namespace SHA256
             string[] paddedBlocks = Padding(blocks);
             // Padding Complete
 
+            // Block decomposition and hash computation
+            foreach(var block in paddedBlocks)
+            {
+                DecomposedBlocks(block);
+            }
+
+            foreach(var i in H)
+            {
+                Console.Write(i.ToString("X") + " ");
+            }
 
             return "";
         }
@@ -128,7 +149,7 @@ namespace SHA256
             string[] tempBlocks = new string[blocks.Length];
 
             int index = 0;
-            foreach(string block in blocks)
+            foreach (string block in blocks)
             {
                 string tempBlock = block; // Placeholder for block, because it is read only
                 int k = (447 - block.Length) % 512; // M.Length = l  / Checks how many 0's are going to be needed
@@ -150,5 +171,55 @@ namespace SHA256
 
             return tempBlocks;
         }
+
+        private void DecomposedBlocks(string block)
+        {
+            string[] W = new string[64];
+            //Console.WriteLine(block[0]);
+            for (int j = 0; j < 64; j++)
+            {
+                W[j] = (j < 16) ? block.Substring(j * 32, 32) : Convert.ToString(sigma1(W[j - 2]) + Convert.ToUInt32(W[j - 7], 2) + sigma0(W[j - 15]) + Convert.ToUInt32(W[j - 16], 2), 2).PadLeft(32, '0');
+                Console.WriteLine(W[j] + ", Length: " + W[j].Length + ", Count: " + j);
+            }  
+
+            // Processing
+            // 2. Initialize the eight working variables with the (i-1)-st hash value:
+            UInt32 a = H[0],
+                   b = H[1],
+                   c = H[2],
+                   d = H[3],
+                   e = H[4],
+                   f = H[5],
+                   g = H[6],
+                   h = H[7];
+
+            // 3. For t=0 to 63:
+            for (int t = 0; t < 64; ++t)
+            {
+                UInt32 T1 = h + Sigma1(e) + Ch(e, f, g) + K[t] + Convert.ToUInt32(W[t], 2);
+                UInt32 T2 = Sigma0(a) + Maj(a, b, c);
+                h = g;
+                g = f;
+                f = e;
+                e = d + T1;
+                d = c;
+                c = b;
+                b = a;
+                a = T1 + T2;
+            }
+
+            // 4. Compute the intermediate hash value H:
+            H[0] = a + H[0];
+            H[1] = b + H[1];
+            H[2] = c + H[2];
+            H[3] = d + H[3];
+            H[4] = e + H[4];
+            H[5] = f + H[5];
+            H[6] = g + H[6];
+            H[7] = h + H[7];
+
+        }
+
+
     }
 }
