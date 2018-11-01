@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+
 
 namespace SHA256
 {
@@ -13,7 +9,7 @@ namespace SHA256
     {
         static void Main(string[] args)
         {
-            SHA256 sha256 = new SHA256("abc");
+            SHA256 sha256 = new SHA256("password123");
             Console.WriteLine(sha256.getHash());
             Console.ReadKey();
         }
@@ -151,21 +147,21 @@ namespace SHA256
             int index = 0;
             foreach (string block in blocks)
             {
-                string tempBlock = block; // Placeholder for block, because it is read only
+                string M = block; // Placeholder for block, because it is read only
                 int k = (447 - block.Length) % 512; // M.Length = l  / Checks how many 0's are going to be needed
-                tempBlock += "1"; // Appends one bit
+                M += "1"; // Appends one bit
                 while (k > 0)
                 {
-                    tempBlock += "0";
+                    M += "0";
                     k--;
                 }
 
-                string _ = Convert.ToString(tempBlock.Length, 2); // Creating the 64 bit string
+                string _ = Convert.ToString(block.Length, 2); // Creating the 64 bit string
                 int n = 64 - _.Length;
                 for (var i = 0; i < n; i++) _ = "0" + _;
-                tempBlock = tempBlock + _;
+                M = M + _;
 
-                tempBlocks[index] = tempBlock;
+                tempBlocks[index] = M;
                 index++;
             }
 
