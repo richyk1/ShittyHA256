@@ -10,85 +10,91 @@ namespace SHA256
 {
     class Program
     {
-        static readonly string path = "database.json";
-
         static void Main(string[] args)
         {
-            Console.Write("Username: ");
-            string username = Console.ReadLine();
 
-            FileStream fileStream = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+            //FileStream fileStream = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+            while (true)
+            {
+                Console.Clear();
+                Console.Write("Username: ");
+                string username = Console.ReadLine();
 
-            if (User.checkUsername(username, fileStream))
-            {
-                Console.WriteLine("Username found!");
-                Console.Write("Log in with your password: ");
-                string password = null;
-                while (User.checkPassword(password, fileStream) == false)
+                if (User.checkUsername(username))
                 {
-                    while (true)
-                    {
-                        var key = System.Console.ReadKey(true);
-                        if (key.Key == ConsoleKey.Enter)
-                            break;
-                        password += key.KeyChar;
-                    }
-                }
-                Console.WriteLine("Logged in.");
-                Console.ReadKey();
-            }
-            else
-            {
-                Console.WriteLine("No user with specified username found.");
-                Console.WriteLine("Enter your a password for this new account: ");
-                string pw = null;
-                while (true)
-                {
+                    Console.WriteLine("Username found!");
+                    Console.WriteLine("Log in with your password: ");
                     string password = null;
+
                     while (true)
                     {
                         var key = System.Console.ReadKey(true);
-                        if (key.Key == ConsoleKey.Enter)
+                        if (key.Key == ConsoleKey.Enter && User.checkPassword(password.Replace("\r", "")) == true)
+                        {
                             break;
+                        }
+                        else if(key.Key == ConsoleKey.Enter)
+                        {
+                            Console.WriteLine("Wrong Password");
+                            password = null;
+                        }
+                            
                         password += key.KeyChar;
                     }
 
-                    Console.WriteLine("Enter the same password again: ");
-
-                    string repeatedPassword = null;
+                    Console.WriteLine("Logged in.");
+                    System.Threading.Thread.Sleep(5000);
+                }
+                else
+                {
+                    Console.WriteLine("No user with specified username found.");
+                    Console.WriteLine("Enter your password for this new account: ");
+                    string pw = null;
                     while (true)
                     {
-                        var key = System.Console.ReadKey(true);
-                        if (key.Key == ConsoleKey.Enter)
+                        string password = null;
+                        while (true)
+                        {
+                            var key = System.Console.ReadKey(true);
+                            if (key.Key == ConsoleKey.Enter)
+                                break;
+                            password += key.KeyChar;
+                        }
+
+                        Console.WriteLine("Enter the same password again: ");
+
+                        string repeatedPassword = null;
+                        while (true)
+                        {
+                            var key = System.Console.ReadKey(true);
+                            if (key.Key == ConsoleKey.Enter)
+                                break;
+                            repeatedPassword += key.KeyChar;
+                        }
+
+                        if (password == repeatedPassword)
+                        {
+                            pw = password;
                             break;
-                        repeatedPassword += key.KeyChar;
+                        }
                     }
+                        Console.WriteLine("The passwords do not match!");
 
-                    if (password == repeatedPassword)
-                    {
-                        pw = password;
-                        break;
+                        User.save(username, new SHA256(pw).getHash());
+                        Console.WriteLine("Logged in");
+
+                        System.Threading.Thread.Sleep(5000);
+                        //SHA256 sha256 = new SHA256("password123");
+                        //Console.WriteLine(sha256.getHash());
+                        //Console.ReadKey();
+
                     }
-
-                    Console.WriteLine("You enetered one of them wrong");
                 }
 
-                User.save(username, pw, fileStream);
-                Console.WriteLine("Logged in");
-                Console.ReadKey();
-
-
-
-
-                //SHA256 sha256 = new SHA256("password123");
-                //Console.WriteLine(sha256.getHash());
-                //Console.ReadKey();
 
             }
-
         }
-    }
-
+    
     class User
     {
         public static string path = "database.json";
@@ -102,10 +108,10 @@ namespace SHA256
             this.password = password;
         }
 
-        public static bool checkUsername(string username, FileStream fileStream)
+        public static bool checkUsername(string username)
         {
             JsonSerializer jsonSerializer = new JsonSerializer();
-            using (StreamReader sr = new StreamReader(fileStream))
+            using (StreamReader sr = File.OpenText(path))
             using (JsonTextReader jsonTextReader = new JsonTextReader(sr))
             {
                 jsonTextReader.CloseInput = false;
@@ -113,9 +119,8 @@ namespace SHA256
 
                 while (jsonTextReader.Read())
                 {
-                    var users = jsonSerializer.Deserialize<List<User>>(jsonTextReader);
-
-                    // Continue
+                    var user = jsonSerializer.Deserialize<List<User>>(jsonTextReader);
+                    if (user[0].username == username) return true;
 
                 }
             }
@@ -123,11 +128,11 @@ namespace SHA256
             return false;
         }
 
-        public static bool checkPassword(string password, FileStream fileStream)
+        public static bool checkPassword(string password)
         {
 
             JsonSerializer jsonSerializer = new JsonSerializer();
-            using (StreamReader sr = new StreamReader(fileStream))
+            using (StreamReader sr = File.OpenText(path))
             using (JsonTextReader jsonTextReader = new JsonTextReader(sr))
             {
                 jsonTextReader.CloseInput = false;
@@ -135,14 +140,19 @@ namespace SHA256
 
                 while (jsonTextReader.Read())
                 {
-                    if (jsonSerializer.Deserialize<User>(jsonTextReader).password == password) return true;
+                    var _array = jsonSerializer.Deserialize<List<User>>(jsonTextReader);
+                   
+                    if (_array[0].password == new SHA256(password).getHash())
+                    {
+                        return true;
+                    }
                 }
             }
 
             return false;
         }
 
-        public static void save(string username, string password, FileStream fileStream)
+        public static void save(string username, string password)
         {
             users.Add(new User(username, password));
 
@@ -157,23 +167,6 @@ namespace SHA256
         }
     }
 
-    public class ArrayConverter : JsonConverter
-    {
-        public override bool CanConvert(Type objectType)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-    }
 
     // Operating in 32-bits
     class SHA256
@@ -221,14 +214,14 @@ namespace SHA256
         uint sigma0(string X)
         {
             uint binaryTextTobinary = Convert.ToUInt32(X, 2);
-            Console.WriteLine("sigma0: {0}", RotR(binaryTextTobinary, 7) ^ RotR(binaryTextTobinary, 18) ^ ShR(binaryTextTobinary, 3));
+            // Console.WriteLine("sigma0: {0}", RotR(binaryTextTobinary, 7) ^ RotR(binaryTextTobinary, 18) ^ ShR(binaryTextTobinary, 3));
             return (RotR(binaryTextTobinary, 7) ^ RotR(binaryTextTobinary, 18) ^ ShR(binaryTextTobinary, 3));
         }
 
         uint sigma1(string X)
         {
             uint binaryTextTobinary = Convert.ToUInt32(X, 2);
-            Console.WriteLine("sigma1: {0}", RotR(binaryTextTobinary, 17) ^ RotR(binaryTextTobinary, 19) ^ ShR(binaryTextTobinary, 10));
+            // Console.WriteLine("sigma1: {0}", RotR(binaryTextTobinary, 17) ^ RotR(binaryTextTobinary, 19) ^ ShR(binaryTextTobinary, 10));
             return (RotR(binaryTextTobinary, 17) ^ RotR(binaryTextTobinary, 19) ^ ShR(binaryTextTobinary, 10));
         }
 
@@ -291,12 +284,14 @@ namespace SHA256
                 DecomposedBlocks(block);
             }
 
+            string output = null;
             foreach(var i in H)
             {
-                Console.Write(i.ToString("X") + " ");
+                // output += (i.ToString("X") + " "); Every module split
+                output += (i.ToString("X"));
             }
 
-            return "";
+            return output;
         }
 
         private string[] Padding(string[] blocks)
@@ -330,11 +325,11 @@ namespace SHA256
         private void DecomposedBlocks(string block)
         {
             string[] W = new string[64];
-            //Console.WriteLine(block[0]);
+            // Console.WriteLine(block[0]);
             for (int j = 0; j < 64; j++)
             {
                 W[j] = (j < 16) ? block.Substring(j * 32, 32) : Convert.ToString(sigma1(W[j - 2]) + Convert.ToUInt32(W[j - 7], 2) + sigma0(W[j - 15]) + Convert.ToUInt32(W[j - 16], 2), 2).PadLeft(32, '0');
-                Console.WriteLine(W[j] + ", Length: " + W[j].Length + ", Count: " + j);
+                // Console.WriteLine(W[j] + ", Length: " + W[j].Length + ", Count: " + j);
             }  
 
             // Processing
