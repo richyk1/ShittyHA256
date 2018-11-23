@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 
 
@@ -7,13 +10,169 @@ namespace SHA256
 {
     class Program
     {
+        static readonly string path = "database.json";
+
         static void Main(string[] args)
         {
-            SHA256 sha256 = new SHA256("password123");
-            Console.WriteLine(sha256.getHash());
-            Console.ReadKey();
+            Console.Write("Username: ");
+            string username = Console.ReadLine();
+
+            FileStream fileStream = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+
+            if (User.checkUsername(username, fileStream))
+            {
+                Console.WriteLine("Username found!");
+                Console.Write("Log in with your password: ");
+                string password = null;
+                while (User.checkPassword(password, fileStream) == false)
+                {
+                    while (true)
+                    {
+                        var key = System.Console.ReadKey(true);
+                        if (key.Key == ConsoleKey.Enter)
+                            break;
+                        password += key.KeyChar;
+                    }
+                }
+                Console.WriteLine("Logged in.");
+                Console.ReadKey();
+            }
+            else
+            {
+                Console.WriteLine("No user with specified username found.");
+                Console.WriteLine("Enter your a password for this new account: ");
+                string pw = null;
+                while (true)
+                {
+                    string password = null;
+                    while (true)
+                    {
+                        var key = System.Console.ReadKey(true);
+                        if (key.Key == ConsoleKey.Enter)
+                            break;
+                        password += key.KeyChar;
+                    }
+
+                    Console.WriteLine("Enter the same password again: ");
+
+                    string repeatedPassword = null;
+                    while (true)
+                    {
+                        var key = System.Console.ReadKey(true);
+                        if (key.Key == ConsoleKey.Enter)
+                            break;
+                        repeatedPassword += key.KeyChar;
+                    }
+
+                    if (password == repeatedPassword)
+                    {
+                        pw = password;
+                        break;
+                    }
+
+                    Console.WriteLine("You enetered one of them wrong");
+                }
+
+                User.save(username, pw, fileStream);
+                Console.WriteLine("Logged in");
+                Console.ReadKey();
+
+
+
+
+                //SHA256 sha256 = new SHA256("password123");
+                //Console.WriteLine(sha256.getHash());
+                //Console.ReadKey();
+
+            }
+
+        }
+    }
+
+    class User
+    {
+        public static string path = "database.json";
+        public string username { get; set; }
+        public string password { get; set; }
+        private static List<User> users = new List<User>();
+
+        public User(string username, string password)
+        {
+            this.username = username;
+            this.password = password;
         }
 
+        public static bool checkUsername(string username, FileStream fileStream)
+        {
+            JsonSerializer jsonSerializer = new JsonSerializer();
+            using (StreamReader sr = new StreamReader(fileStream))
+            using (JsonTextReader jsonTextReader = new JsonTextReader(sr))
+            {
+                jsonTextReader.CloseInput = false;
+                jsonTextReader.SupportMultipleContent = true;
+
+                while (jsonTextReader.Read())
+                {
+                    var users = jsonSerializer.Deserialize<List<User>>(jsonTextReader);
+
+                    // Continue
+
+                }
+            }
+               
+            return false;
+        }
+
+        public static bool checkPassword(string password, FileStream fileStream)
+        {
+
+            JsonSerializer jsonSerializer = new JsonSerializer();
+            using (StreamReader sr = new StreamReader(fileStream))
+            using (JsonTextReader jsonTextReader = new JsonTextReader(sr))
+            {
+                jsonTextReader.CloseInput = false;
+                jsonTextReader.SupportMultipleContent = true;
+
+                while (jsonTextReader.Read())
+                {
+                    if (jsonSerializer.Deserialize<User>(jsonTextReader).password == password) return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static void save(string username, string password, FileStream fileStream)
+        {
+            users.Add(new User(username, password));
+
+            JsonSerializer jsonSerializer = new JsonSerializer();
+
+            using(StreamWriter sw = File.AppendText(path))
+            using (JsonTextWriter jsonTextWriter = new JsonTextWriter(sw))
+            {
+                jsonSerializer.Formatting = Formatting.Indented;
+                jsonSerializer.Serialize(jsonTextWriter, users);
+            }
+        }
+    }
+
+    public class ArrayConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     // Operating in 32-bits

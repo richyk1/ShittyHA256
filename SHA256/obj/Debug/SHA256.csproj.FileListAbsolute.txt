@@ -12,3 +12,6 @@ C:\Users\kasen\Desktop\SHA256\SHA256\obj\Debug\SHA256.csprojAssemblyReference.ca
 C:\Users\kasen\Desktop\SHA256\SHA256\obj\Debug\SHA256.csproj.CoreCompileInputs.cache
 C:\Users\kasen\Desktop\SHA256\SHA256\obj\Debug\SHA256.exe
 C:\Users\kasen\Desktop\SHA256\SHA256\obj\Debug\SHA256.pdb
+C:\Users\kasen\Desktop\SHA256\SHA256\bin\Debug\Newtonsoft.Json.dll
+C:\Users\kasen\Desktop\SHA256\SHA256\bin\Debug\Newtonsoft.Json.xml
+C:\Users\kasen\Desktop\SHA256\SHA256\obj\Debug\SHA256.csproj.CopyComplete
