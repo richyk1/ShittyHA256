@@ -48,10 +48,11 @@ namespace SHA256
                 else
                 {
                     Console.WriteLine("No user with specified username found.");
-                    Console.WriteLine("Enter your password for this new account: ");
+                    //Console.WriteLine("Enter your password for this new account: ");
                     string pw = null;
                     while (true)
                     {
+                        Console.WriteLine("\nNew Password > : ");
                         string password = null;
                         while (true)
                         {
@@ -77,16 +78,16 @@ namespace SHA256
                             pw = password;
                             break;
                         }
-                    }
                         Console.WriteLine("The passwords do not match!");
+                    }
+                        
+                    User.save(username, new SHA256(pw).getHash());
+                    Console.WriteLine("Logged in");
 
-                        User.save(username, new SHA256(pw).getHash());
-                        Console.WriteLine("Logged in");
-
-                        System.Threading.Thread.Sleep(5000);
-                        //SHA256 sha256 = new SHA256("password123");
-                        //Console.WriteLine(sha256.getHash());
-                        //Console.ReadKey();
+                    System.Threading.Thread.Sleep(5000);
+                    //SHA256 sha256 = new SHA256("password123");
+                    //Console.WriteLine(sha256.getHash());
+                    //Console.ReadKey();
 
                     }
                 }
